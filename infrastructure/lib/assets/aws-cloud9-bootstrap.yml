@@ -15,8 +15,14 @@ mainSteps:
 
     - echo '=== INSTALL CORE DEPENDENCIES ==='
     - yum -y remove aws-cli
+    
     - yum -y install amazon-linux-extras
-    - yum -y install sqlite curl wget telnet jq strace git nc python3 python3-pip bash-completion
+    
+    - amazon-linux-extras enable python3.8
+    - yum clean metadata
+    
+    - yum -y install sqlite curl wget telnet jq strace git nc bash-completion
+    - yum -y install python38 python-38-pip python3 python3-pip
     - yum -y install tar unzip gzip bzip2-devel ed gcc gcc-c++ gcc-gfortran less libcurl-devel
     - yum -y install openssl openssl-devel readline-devel xz-devel zlib-devel glibc-static
     - yum -y install libcxx libcxx-devel llvm-toolset-7 zlib-static tree gettext
@@ -113,14 +119,14 @@ mainSteps:
     - chmod +x /usr/bin/kustomize
   
     - echo '=== CREATE REPOSITORIES DIRECTORY ==='
-    - mkdir -p /home/ec2-user/repositories/
+    - mkdir -p /home/ec2-user/environment/repos/
 
     - echo '=== CLONE KUBEFLOW MANIFESTS AND OVERLAY ==='
     - KUBEFLOW_RELEASE_VERSION=v1.4.1
     - AWS_RELEASE_VERSION=v1.4.1-aws-b1.0.0
-    - cd /home/ec2-user/repositories/ && git clone "https://github.com/awslabs/kubeflow-manifests.git"
-    - cd /home/ec2-user/repositories/kubeflow-manifests && git checkout "${AWS_RELEASE_VERSION}"
-    - cd /home/ec2-user/repositories/kubeflow-manifests && git clone --branch "${KUBEFLOW_RELEASE_VERSION}" "https://github.com/kubeflow/manifests.git" upstream
+    - cd /home/ec2-user/environment/repos && git clone "https://github.com/awslabs/kubeflow-manifests.git"
+    - cd /home/ec2-user/environment/repos/kubeflow-manifests && git checkout "${AWS_RELEASE_VERSION}"
+    - cd /home/ec2-user/environment/repos/kubeflow-manifests && git clone --branch "${KUBEFLOW_RELEASE_VERSION}" "https://github.com/kubeflow/manifests.git" upstream
 
     - echo '=== CLEANING EC2-USER ==='
     - echo 'export AWS_CLUSTER_NAME=shared-eks-cluster' >> /home/ec2-user/.bashrc
