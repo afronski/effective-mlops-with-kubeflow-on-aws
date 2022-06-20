@@ -1,0 +1,5 @@
+nodejs 16.15.1
+python 3.8.10
+java corretto-11.0.12.7.1
+kubectl 1.22.0
+eksctl 0.70.0

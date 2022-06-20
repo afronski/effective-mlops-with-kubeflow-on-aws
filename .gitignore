@@ -1,0 +1,22 @@
+# Python virtualenv directory.
+.env/
+
+# Node.js dependencies.
+node_modules/
+
+# IDEs.
+.vscode/
+.idea/
+.ipynb_checkpoints/
+
+# Archives.
+*.zip
+!python.zip
+*.tar.gz
+*.npy
+
+# Datasets.
+amazon-sagemaker-mlops-data-eu-west-1/
+
+# Temporary artifacts:
+.tmp/
