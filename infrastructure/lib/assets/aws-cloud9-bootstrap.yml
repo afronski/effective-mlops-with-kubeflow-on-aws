@@ -16,28 +16,31 @@ mainSteps:
     - echo '=== INSTALL CORE DEPENDENCIES ==='
     - yum -y remove aws-cli
     - yum -y install amazon-linux-extras
-    - yum -y install sqlite curl wget telnet jq strace tree gcc openssl-devel glibc-static python3 python3-pip gettext bash-completion
+    - yum -y install sqlite curl wget telnet jq strace git nc python3 python3-pip bash-completion
+    - yum -y install tar unzip gzip bzip2-devel ed gcc gcc-c++ gcc-gfortran less libcurl-devel
+    - yum -y install openssl openssl-devel readline-devel xz-devel zlib-devel glibc-static
+    - yum -y install libcxx libcxx-devel llvm-toolset-7 zlib-static tree gettext
 
     - echo '=== INSTALL AND CONFIGURE AWS CLI ==='
-
     - sudo -i -u ec2-user bash -c "pip install --user -U boto boto3 botocore awscli aws-sam-cli"
     - sudo -i -u ec2-user bash -c "pip3 install --user -U boto boto3 botocore awscli aws-sam-cli"
 
+    - export REGION=$(curl -s http://169.254.169.254/latest/dynamic/instance-identity/document/ | jq -r .region)
     - mkdir -p /home/ec2-user/.aws
     - echo '[default]' > /home/ec2-user/.aws/config
-    - echo 'region = eu-west-1' >> /home/ec2-user/.aws/config
+    - echo "region = ${REGION}" >> /home/ec2-user/.aws/config
     - echo 'output = json' >> /home/ec2-user/.aws/config
     - chmod 600 /home/ec2-user/.aws/config
     - rm -rf /home/ec2-user/.aws/credentials
 
-    - pip install boto boto3 botocore awscli
-    - pip3 install boto boto3 botocore awscli
+    - pip install boto boto3 botocore awscli aws-sam-cli
+    - pip3 install boto boto3 botocore awscli aws-sam-cli
 
-    - mkdir -p /rooot/.aws
-    - echo '[default]' > /rooot/.aws/config
-    - echo 'region = eu-west-1' >> /rooot/.aws/config
-    - echo 'output = json' >> /rooot/.aws/config
-    - chmod 600 /rooot/.aws/config
+    - mkdir -p /root/.aws
+    - echo '[default]' > /root/.aws/config
+    - echo "region = ${REGION}" >> /root/.aws/config
+    - echo 'output = json' >> /root/.aws/config
+    - chmod 600 /root/.aws/config
     - rm -rf /root/.aws/credentials
 
     - echo '=== RESIZE DISK ==='
@@ -81,42 +84,52 @@ mainSteps:
         fi
       fi
 
-    - echo '=== INSTALL AND CONFIGURE SOFTWARE ==='
-    - export PATH=$PATH:/usr/bin
+    - echo '=== INSTALL AND CONFIGURE MACHINE ==='
+    - echo 'fs.inotify.max_user_watches=524288' >> /etc/sysctl.conf && sysctl -p
 
-    - echo "fs.inotify.max_user_watches=524288" >> /etc/sysctl.conf && sysctl -p
+    - echo '=== INSTALL AND CONFIGURE NODE.JS ==='
+    - sudo -i -u ec2-user bash -c 'source /home/ec2-user/.nvm/nvm.sh && nvm install 16.15.1'
+    - sudo -i -u ec2-user bash -c 'source /home/ec2-user/.nvm/nvm.sh && nvm use 16.15.1 && nvm alias default 16.15.1'
 
-    - sudo -i -u ec2-user bash -c "source /home/ec2-user/.nvm/nvm.sh && nvm install 16.10.0"
-    - sudo -i -u ec2-user bash -c "source /home/ec2-user/.nvm/nvm.sh && nvm use 16.10.0 && nvm alias default 16.10.0"
+    - sudo -i -u ec2-user bash -c 'npm install --force --global npm'
+    - sudo -i -u ec2-user bash -c 'npm install --force --global typescript aws-cdk'
 
-    - sudo -i -u ec2-user bash -c "npm install --global npm"
-    - sudo -i -u ec2-user bash -c "npm install --global npm typescript aws-cdk serverless"
-
-    - echo 'complete -C "$HOME/.local/bin/aws_completer" aws' >> /home/ec2-user/.bashrc
-
-    - curl --silent --location -o /usr/bin/kubectl "https://dl.k8s.io/release/v1.22.0/bin/linux/amd64/kubectl"
+    - echo '=== INSTALL AND CONFIGURE KUBECTL ==='
+    - curl --silent --location -o /usr/bin/kubectl "https://dl.k8s.io/release/v1.24.2/bin/linux/amd64/kubectl"
     - chmod +x /usr/bin/kubectl
     - sudo -i -u ec2-user bash -c "kubectl completion bash >> ~/.bash_completion"
 
-    - curl --silent --location "https://github.com/weaveworks/eksctl/releases/download/v0.70.0/eksctl_Linux_amd64.tar.gz" | tar xz -C /tmp
+    - echo '=== INSTALL AND CONFIGURE EKSCTL ==='
+    - curl --silent --location "https://github.com/weaveworks/eksctl/releases/download/v0.102.0/eksctl_Linux_amd64.tar.gz" | tar xz -C /tmp
     - mv /tmp/eksctl /usr/bin
     - sudo -H -u ec2-user bash -c "eksctl completion bash >> ~/.bash_completion"
 
-    - curl --silent --location "https://github.com/kubeflow/kfctl/releases/download/v1.2.0/kfctl_v1.2.0-0-gbc038f9_linux.tar.gz" | tar xz -C /tmp
-    - mv /tmp/kfctl /usr/bin
-    - sudo -H -u ec2-user bash -c "kfctl completion bash >> ~/.bash_completion"
+    - echo '=== INSTALL AND CONFIGURE YQ ==='
+    - wget "https://github.com/mikefarah/yq/releases/download/v4.25.2/yq_linux_amd64" -O /usr/bin/yq
+    - chmod +x /usr/bin/yq
 
-    - curl -o /usr/bin/aws-iam-authenticator https://amazon-eks.s3.us-west-2.amazonaws.com/1.21.2/2021-07-05/bin/linux/amd64/aws-iam-authenticator
-    - chmod +x /usr/bin/aws-iam-authenticator
+    - echo '=== INSTALL AND CONFIGURE KUSTOMIZE ==='
+    - wget "https://github.com/kubernetes-sigs/kustomize/releases/download/v3.2.0/kustomize_3.2.0_linux_amd64" -O /usr/bin/kustomize
+    - chmod +x /usr/bin/kustomize
+  
+    - echo '=== CREATE REPOSITORIES DIRECTORY ==='
+    - mkdir -p /home/ec2-user/repositories/
 
-    - echo 'export PATH=$PATH:/usr/bin:$HOME/environment/repos/amazon-sagemaker-mlops/scripts' >> /home/ec2-user/.bashrc
-    - echo 'export MWAA_ENVIRONMENT=shared-apache-airflow-environment' >> /home/ec2-user/.bashrc
-    - echo 'export AWS_CLUSTER_NAME=shared-eks-cluster' >> /home/ec2-user/.bashrc
+    - echo '=== CLONE KUBEFLOW MANIFESTS AND OVERLAY ==='
+    - KUBEFLOW_RELEASE_VERSION=v1.4.1
+    - AWS_RELEASE_VERSION=v1.4.1-aws-b1.0.0
+    - cd /home/ec2-user/repositories/ && git clone "https://github.com/awslabs/kubeflow-manifests.git"
+    - cd /home/ec2-user/repositories/kubeflow-manifests && git checkout "${AWS_RELEASE_VERSION}"
+    - cd /home/ec2-user/repositories/kubeflow-manifests && git clone --branch "${KUBEFLOW_RELEASE_VERSION}" "https://github.com/kubeflow/manifests.git" upstream
 
     - echo '=== CLEANING EC2-USER ==='
-    - sudo -H -u ec2-user bash -c ". /etc/profile.d/bash_completion.sh"
-    - sudo -H -u ec2-user bash -c ". /home/ec2-user/.bash_completion"
+    - echo 'export AWS_CLUSTER_NAME=shared-eks-cluster' >> /home/ec2-user/.bashrc
+    - echo 'export PATH="$PATH:/usr/local/bin:/$HOME/.local/bin"' >> /home/ec2-user/.bashrc
+
+    - echo "complete -C '/usr/local/bin/aws_completer' aws" >> /home/ec2-user/.bash_profile
+
     - rm -rf /home/ec2-user/environment/README.md
+
     - chown -R ec2-user:ec2-user /home/ec2-user/
 
     - echo '=== REBOOT ==='

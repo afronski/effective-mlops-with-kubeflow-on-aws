@@ -18,6 +18,8 @@ $ npm install
 
 ## Deployment
 
+### AWS Infrastructure
+
 ```bash
 $ npm run package
 
@@ -29,6 +31,11 @@ $ git remote add aws ...
 $ git push aws master
 
 $ npm run deploy
+```
+
+### Kubeflow
+
+```bash
 ```
 
 ## License
