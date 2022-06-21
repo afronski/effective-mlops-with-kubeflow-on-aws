@@ -139,7 +139,10 @@ export class InfrastructureSharedKubeflowDepsStack extends Stack {
 
     new Certificate(this, "WildcardRegionalCertificate", {
       domainName: `*.${props.rootDomain}`,
-      validation: CertificateValidation.fromDns(props.hostedZone),
+
+      // This has to be validated manually, as root domain is not managed by this stack.
+      // KEEP IN MIND THAT STACK WILL NOT COMPLETE WITHOUT THAT.
+      validation: CertificateValidation.fromDns()
     });
 
     // Amazon Cognito user pool, client, and relevant configuration.
