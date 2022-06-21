@@ -15,12 +15,12 @@ mainSteps:
 
     - echo '=== INSTALL CORE DEPENDENCIES ==='
     - yum -y remove aws-cli
-    
+
     - yum -y install amazon-linux-extras
-    
+
     - amazon-linux-extras enable python3.8
     - yum clean metadata
-    
+
     - yum -y install sqlite curl wget telnet jq strace git nc bash-completion
     - yum -y install python38 python-38-pip python3 python3-pip
     - yum -y install tar unzip gzip bzip2-devel ed gcc gcc-c++ gcc-gfortran less libcurl-devel
@@ -32,7 +32,7 @@ mainSteps:
     - sudo -i -u ec2-user bash -c "pip3 install --user -U boto boto3 botocore awscli aws-sam-cli"
 
     - export REGION=$(curl -s http://169.254.169.254/latest/dynamic/instance-identity/document/ | jq -r .region)
-    
+
     - mkdir -p /home/ec2-user/.aws
     - echo '[default]' > /home/ec2-user/.aws/config
     - echo "region = ${REGION}" >> /home/ec2-user/.aws/config
@@ -118,7 +118,7 @@ mainSteps:
     - echo '=== INSTALL AND CONFIGURE KUSTOMIZE ==='
     - wget "https://github.com/kubernetes-sigs/kustomize/releases/download/v3.2.0/kustomize_3.2.0_linux_amd64" -O /usr/bin/kustomize
     - chmod +x /usr/bin/kustomize
-  
+
     - echo '=== CREATE REPOSITORIES DIRECTORY ==='
     - mkdir -p /home/ec2-user/environment/repos/
 
@@ -132,6 +132,7 @@ mainSteps:
     - echo '=== ASSOCIATE IAM OIDC FOR EKS CLUSTER ==='
     - CLUSTER_NAME=shared-eks-cluster
     - echo "export CLUSTER_NAME=${CLUSTER_NAME}" >> /home/ec2-user/.bashrc
+    - echo "export AWS_REGION=${REGION}" >> /home/ec2-user/.bashrc
     - eksctl utils associate-iam-oidc-provider --cluster "${CLUSTER_NAME}" --region "${REGION}" --approve
 
     - echo '=== CLEANING EC2-USER ==='

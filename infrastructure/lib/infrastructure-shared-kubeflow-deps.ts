@@ -2,17 +2,20 @@ import { RemovalPolicy, SecretValue, Stack, StackProps, Tags } from "aws-cdk-lib
 import { Construct } from "constructs";
 
 import { Certificate, CertificateValidation } from "aws-cdk-lib/aws-certificatemanager";
-import { SecurityGroup, SubnetType, Peer, Port, Vpc } from "aws-cdk-lib/aws-ec2";
+import { AccountRecovery, UserPool, UserPoolClientIdentityProvider, UserPoolDomain } from "aws-cdk-lib/aws-cognito";
+import { Peer, Port, SecurityGroup, SubnetType, Vpc } from "aws-cdk-lib/aws-ec2";
 import { AccessKey, User } from "aws-cdk-lib/aws-iam";
 import { Credentials, DatabaseInstance, DatabaseInstanceEngine, MysqlEngineVersion } from "aws-cdk-lib/aws-rds";
-import { HostedZone } from "aws-cdk-lib/aws-route53";
+import { ARecord, HostedZone, RecordTarget } from "aws-cdk-lib/aws-route53";
+import { UserPoolDomainTarget } from "aws-cdk-lib/aws-route53-targets";
 import { BlockPublicAccess, Bucket } from "aws-cdk-lib/aws-s3";
 import { Secret } from "aws-cdk-lib/aws-secretsmanager";
 
 import { CustomSSMParameter } from "./custom-resources/custom-ssm-parameter";
+import { SSMParameterReader } from "./custom-resources/ssm-parameter-reader";
 
 import * as statement from "cdk-iam-floyd";
-import { SSMParameterReader } from "./custom-resources/ssm-parameter-reader";
+
 
 interface InfrastructureSharedKubeflowDepsProps extends StackProps {
   vpc: Vpc;
@@ -153,5 +156,72 @@ export class InfrastructureSharedKubeflowDepsStack extends Stack {
     });
 
     const globalCertificateArn = reader.getParameterValue();
+    const certificate = Certificate.fromCertificateArn(this, "GlobalCertificateForPlatform", globalCertificateArn);
+
+    const userPool = new UserPool(this, "KubeflowCognitoUserPool", {
+      userPoolName: "kubeflow-user-pool",
+
+      selfSignUpEnabled: false,
+
+      signInAliases: { email: true },
+      autoVerify: { email: true },
+
+      standardAttributes: { email: { mutable: false, required: true } },
+
+      passwordPolicy: {
+        minLength: 12,
+        requireLowercase: true,
+        requireDigits: true,
+        requireUppercase: false,
+        requireSymbols: false,
+      },
+
+      accountRecovery: AccountRecovery.EMAIL_ONLY
+    });
+
+    userPool.applyRemovalPolicy(RemovalPolicy.DESTROY);
+
+    userPool.addClient("KubeflowUserPoolClient", {
+      userPoolClientName: "kubeflow",
+
+      supportedIdentityProviders: [
+        UserPoolClientIdentityProvider.COGNITO
+      ],
+
+      oAuth: {
+        scopes: [
+          { scopeName: "email" },
+          { scopeName: "openid" },
+          { scopeName: "aws.cognito.signin.user.admin" },
+          { scopeName: "profile" }
+        ],
+
+        flows: {
+          authorizationCodeGrant: true
+        },
+
+        callbackUrls: [
+          `https://kubeflow.platform.${props.rootDomain}/oauth2/idpresponse`
+        ],
+
+        logoutUrls: [
+          `https://kubeflow.platform.${props.rootDomain}`
+        ]
+      }
+    });
+
+    const userPoolDomain = new UserPoolDomain(this, "KubeflowUserPoolCustomDomain", {
+      userPool,
+      customDomain: {
+        domainName: `auth.platform.${props.rootDomain}`,
+        certificate
+      }
+    });
+
+    new ARecord(this, "KubeflowUserPoolCustomDomainAliasRecord", {
+      zone: props.hostedZone,
+      recordName: `auth.platform.${props.rootDomain}`,
+      target: RecordTarget.fromAlias(new UserPoolDomainTarget(userPoolDomain))
+    });
   }
 }

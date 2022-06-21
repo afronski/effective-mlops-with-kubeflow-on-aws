@@ -63,9 +63,27 @@ A few things needs to be done to use *AWS Cloud 9* environment properly:
 
 If you are not using *AWS Cloud 9* from 4th step, please make sure you've cloned [awslabs/kubeflow-manifests](https://github.com/awslabs/kubeflow-manifests) locally as it is requested [here](https://awslabs.github.io/kubeflow-manifests/docs/deployment/prerequisites/#clone-the-repository).
 
-Now, we can proceed with the deployment steps:
+Now, we can proceed with the deployment steps.
+
+As a first step we have to log in to the cluster and `update-kubeconfig` (you can find that command in the output values of AWS CloudFormation stack with *EKS*):
 
 ```bash
+$ aws eks update-kubeconfig --name shared-eks-cluster --region eu-west-1 --role-arn arn:aws:iam::...
+$ kubectl create namespace kubeflow
+```
+
+Then, we need to create *IRSA* for *AWS SSM* and *AWS Secrets Manager*, and then install *Kubernetes Secrets Store CSI Driver*:
+
+```bash
+$ eksctl create iamserviceaccount --name kubeflow-secrets-manager-sa --namespace kubeflow --cluster ${CLUSTER_NAME} --attach-policy-arn  arn:aws:iam::aws:policy/AmazonSSMReadOnlyAccess --attach-policy-arn arn:aws:iam::aws:policy/SecretsManagerReadWrite --override-existing-serviceaccounts --approve --region ${AWS_REGION}
+
+$ kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/secrets-store-csi-driver/v1.0.0/deploy/rbac-secretproviderclass.yaml
+$ kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/secrets-store-csi-driver/v1.0.0/deploy/csidriver.yaml
+$ kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/secrets-store-csi-driver/v1.0.0/deploy/secrets-store.csi.x-k8s.io_secretproviderclasses.yaml
+$ kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/secrets-store-csi-driver/v1.0.0/deploy/secrets-store.csi.x-k8s.io_secretproviderclasspodstatuses.yaml
+$ kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/secrets-store-csi-driver/v1.0.0/deploy/secrets-store-csi-driver.yaml
+$ kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/secrets-store-csi-driver/v1.0.0/deploy/rbac-secretprovidersyncing.yaml
+$ kubectl apply -f https://raw.githubusercontent.com/aws/secrets-store-csi-driver-provider-aws/main/deployment/aws-provider-installer.yaml
 ```
 
 ## License
