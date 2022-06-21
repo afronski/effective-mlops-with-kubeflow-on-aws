@@ -161,8 +161,23 @@ $ while ! kustomize build ./docs/deployment/cognito-rds-s3 | kubectl apply -f -;
 Last, but not least:
 
 - We can update the placeholder *DNS* record in a custom domain with the *ALB* address.
+  - `kubectl get ingress -n istio-system`
 - Create a user in a *Cognito* user pool.
+  - Remember the password used for creating a user, it will be used later.
 - Create a profile for the user from the user pool.
+  - ```yaml
+    apiVersion: kubeflow.org/v1beta1
+    kind: Profile
+    metadata:
+      # Replace with the name of profile you want, this will be user's namespace name.
+      name: namespace-for-my-user
+      namespace: kubeflow
+    spec:
+      owner:
+        kind: User
+        # Replace with the email of the user.
+        name: my_user_email@kubeflow.com
+    ```
 - And finally, connect to the central dashboard.
 
 ## License
