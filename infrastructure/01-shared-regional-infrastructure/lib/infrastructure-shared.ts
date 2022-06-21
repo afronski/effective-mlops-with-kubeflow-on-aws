@@ -1,21 +1,22 @@
-import { CfnOutput, RemovalPolicy, Stack, StackProps, Tags } from "aws-cdk-lib";
+import { CfnOutput, Fn, RemovalPolicy, Stack, Tags } from "aws-cdk-lib";
 import { Construct } from "constructs";
 
 import { Repository } from "aws-cdk-lib/aws-codecommit";
 import { BastionHostLinux } from "aws-cdk-lib/aws-ec2";
 import { GatewayVpcEndpointAwsService, Peer, Port, SecurityGroup, SubnetType, Vpc } from "aws-cdk-lib/aws-ec2";
+import { HostedZone } from "aws-cdk-lib/aws-route53";
 import { BlockPublicAccess, Bucket } from "aws-cdk-lib/aws-s3";
+
+import { InfrastructureSharedProps } from "./props/infrastructure-shared-props";
 
 export class InfrastructureSharedStack extends Stack {
   public readonly repositoryCloneUrlHttp: string;
-
   public readonly dataBucket: Bucket;
-  
   public readonly vpc: Vpc;
-  
   public readonly openedSecurityGroup: SecurityGroup;
+  public readonly hostedZone: HostedZone;
 
-  constructor (scope: Construct, id: string, props?: StackProps) {
+  constructor (scope: Construct, id: string, props: InfrastructureSharedProps) {
     super(scope, id, props);
 
     // AWS CodeCommit Git repository shared across AWS Cloud9 instances.
@@ -131,5 +132,14 @@ export class InfrastructureSharedStack extends Stack {
     });
 
     new CfnOutput(this, "BastionPublicIP", { value: bastion.instancePublicIp });
+    
+    // Amazon Route 53 hosted zone for the that will be ingress front-end.
+    
+    this.hostedZone = new HostedZone(this, "HostedZoneForKubeflowPlatformSubdomain", {
+      zoneName: `platform.${props.rootDomain}`
+    });
+    
+    const ns = Fn.join(",", this.hostedZone.hostedZoneNameServers || []); 
+    new CfnOutput(this, "NSRecordForPlatformHostedZone", { value: ns });
   }
 }

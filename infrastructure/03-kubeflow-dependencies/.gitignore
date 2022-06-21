@@ -1,0 +1,22 @@
+# Ignoring compiled assets:
+*.js
+*.d.ts
+
+# But Jest and ESLint configurations should be commited:
+!jest.config.js
+!.eslintrc.js
+
+# CDK assets:
+.cdk.staging/
+cdk.context.json
+
+# Kubeflow assets:
+k8s/kustomize/
+k8s/aws_config/
+k8s/.cache/
+
+# CDK output:
+cdk.out/
+
+# Jest snapshots:
+test/__snapshots__/

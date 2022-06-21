@@ -2,8 +2,9 @@
 *.js
 *.d.ts
 
-# But Jest configuration should be commited:
+# But Jest and ESLint configurations should be commited:
 !jest.config.js
+!.eslintrc.js
 
 # CDK assets:
 .cdk.staging/

@@ -32,6 +32,7 @@ mainSteps:
     - sudo -i -u ec2-user bash -c "pip3 install --user -U boto boto3 botocore awscli aws-sam-cli"
 
     - export REGION=$(curl -s http://169.254.169.254/latest/dynamic/instance-identity/document/ | jq -r .region)
+    
     - mkdir -p /home/ec2-user/.aws
     - echo '[default]' > /home/ec2-user/.aws/config
     - echo "region = ${REGION}" >> /home/ec2-user/.aws/config
@@ -128,8 +129,12 @@ mainSteps:
     - cd /home/ec2-user/environment/repos/kubeflow-manifests && git checkout "${AWS_RELEASE_VERSION}"
     - cd /home/ec2-user/environment/repos/kubeflow-manifests && git clone --branch "${KUBEFLOW_RELEASE_VERSION}" "https://github.com/kubeflow/manifests.git" upstream
 
+    - echo '=== ASSOCIATE IAM OIDC FOR EKS CLUSTER ==='
+    - CLUSTER_NAME=shared-eks-cluster
+    - echo "export CLUSTER_NAME=${CLUSTER_NAME}" >> /home/ec2-user/.bashrc
+    - eksctl utils associate-iam-oidc-provider --cluster "${CLUSTER_NAME}" --region "${REGION}" --approve
+
     - echo '=== CLEANING EC2-USER ==='
-    - echo 'export AWS_CLUSTER_NAME=shared-eks-cluster' >> /home/ec2-user/.bashrc
     - echo 'export PATH="$PATH:/usr/local/bin:/$HOME/.local/bin"' >> /home/ec2-user/.bashrc
 
     - echo "complete -C '/usr/local/bin/aws_completer' aws" >> /home/ec2-user/.bash_profile
