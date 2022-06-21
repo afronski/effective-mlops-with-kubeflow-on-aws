@@ -180,6 +180,10 @@ Last, but not least:
     ```
 - And finally, connect to the central dashboard.
 
+#### Resources
+
+- [Documentation](https://awslabs.github.io/kubeflow-manifests/docs/deployment/cognito-rds-s3/guide/)
+
 ## License
 
 - [MIT](LICENSE.md)
