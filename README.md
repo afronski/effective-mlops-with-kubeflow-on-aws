@@ -70,6 +70,7 @@ As a first step we have to log in to the cluster and `update-kubeconfig` (you ca
 ```bash
 $ aws eks update-kubeconfig --name shared-eks-cluster --region eu-west-1 --role-arn arn:aws:iam::...
 $ kubectl create namespace kubeflow
+$ kubectl create namespace amazon-cloudwatch
 ```
 
 Then, we need to create *IRSA* for *AWS SSM* and *AWS Secrets Manager*, and then install *Kubernetes Secrets Store CSI Driver*:
@@ -85,6 +86,84 @@ $ kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/secrets-sto
 $ kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/secrets-store-csi-driver/v1.0.0/deploy/rbac-secretprovidersyncing.yaml
 $ kubectl apply -f https://raw.githubusercontent.com/aws/secrets-store-csi-driver-provider-aws/main/deployment/aws-provider-installer.yaml
 ```
+
+Next, we will create *IRSA* for *Application Load Balancer (ALB)*, but first - we need add a missing tag (`kubernetes.io/cluster/<CLUSTER_NAME>`):
+
+```bash
+$ export TAG_VALUE=owned
+$ export CLUSTER_SUBNET_IDS=$(aws ec2 describe-subnets --region ${AWS_REGION} --filters Name=tag:aws:cloudformation:stack-name,Values=KubeflowOnAWS-Shared-Infrastructure --output json | jq -r '.Subnets[].SubnetId')
+$ for i in "${CLUSTER_SUBNET_IDS[@]}"; do aws ec2 create-tags --resources ${i} --tags Key=kubernetes.io/cluster/${CLUSTER_NAME},Value=${TAG_VALUE}; done
+
+$ cd ../../kubeflow-manifests
+
+$ export LBC_POLICY_NAME="alb_ingress_controller_${AWS_REGION}_${CLUSTER_NAME}"
+$ export LBC_POLICY_ARN=$(aws iam create-policy --policy-name ${LBC_POLICY_NAME} --policy-document file://./awsconfigs/infra_configs/iam_alb_ingress_policy.json --output text --query 'Policy.Arn')
+$ eksctl create iamserviceaccount --name aws-load-balancer-controller --namespace kube-system --cluster ${CLUSTER_NAME} --region ${AWS_REGION} --attach-policy-arn ${LBC_POLICY_ARN} --override-existing-serviceaccounts --approve
+```
+
+Last, but not least: *IRSA* for *Amazon CloudWatch* and *Fluent Bit*:
+
+```bash
+$ eksctl create iamserviceaccount --name cloudwatch-agent --namespace amazon-cloudwatch --cluster ${CLUSTER_NAME} --region ${AWS_REGION} --approve --override-existing-serviceaccounts --attach-policy-arn arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy
+$ eksctl create iamserviceaccount --name fluent-bit --namespace amazon-cloudwatch --cluster ${CLUSTER_NAME} --region ${AWS_REGION} --approve --override-existing-serviceaccounts --attach-policy-arn arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy
+```
+
+Then, we will install *Fluent Bit* that is integrated with *Amazon CloudWatch*:
+
+```bash
+$ export FluentBitHttpPort='2020'
+$ export FluentBitReadFromHead='Off'
+$ [[ ${FluentBitReadFromHead}='On' ]] && export FluentBitReadFromTail='Off' || export FluentBitReadFromTail='On'
+$ [[ -z ${FluentBitHttpPort} ]] && export FluentBitHttpServer='Off' || export FluentBitHttpServer='On'
+$ curl https://raw.githubusercontent.com/aws-samples/amazon-cloudwatch-container-insights/latest/k8s-deployment-manifest-templates/deployment-mode/daemonset/container-insights-monitoring/quickstart/cwagent-fluent-bit-quickstart.yaml | sed 's/{{cluster_name}}/'${CLUSTER_NAME}'/;s/{{region_name}}/'${AWS_REGION}'/;s/{{http_server_toggle}}/"'${FluentBitHttpServer}'"/;s/{{http_server_port}}/"'${FluentBitHttpPort}'"/;s/{{read_from_head}}/"'${FluentBitReadFromHead}'"/;s/{{read_from_tail}}/"'${FluentBitReadFromTail}'"/' | kubectl apply -f -
+```
+
+Now, we have to configure all the settings:
+
+```bash
+$ printf 'clusterName='$CLUSTER_NAME'' > ./awsconfigs/common/aws-alb-ingress-controller/base/params.env
+
+$ export CognitoUserPoolArn="<YOUR_USER_POOL_ARN>"
+$ export CognitoAppClientId="<YOUR_APP_CLIENT_ID>"
+$ export CognitoUserPoolDomain="<YOUR_USER_POOL_DOMAIN>"
+$ export certArn="<YOUR_ACM_CERTIFICATE_ARN>"
+$ export signOutURL="<YOUR_SIGN_OUT_URL>"
+$ export CognitoLogoutURL="https://$CognitoUserPoolDomain/logout?client_id=$CognitoAppClientId&logout_uri=$signOutURL"
+$ printf 'CognitoUserPoolArn='$CognitoUserPoolArn'
+CognitoAppClientId='$CognitoAppClientId'
+CognitoUserPoolDomain='$CognitoUserPoolDomain'
+certArn='$certArn'' > ./awsconfigs/common/istio-ingress/overlays/cognito/params.env
+
+$ printf 'LOGOUT_URL='$CognitoLogoutURL'' > ./awsconfigs/common/aws-authservice/base/params.env
+
+$ export RDS_SECRET="<YOUR_RDS_SECRET_NAME>"
+$ yq e -i '.spec.parameters.objects |= sub("rds-secret",env(RDS_SECRET))' ./awsconfigs/common/aws-secrets-manager/rds/secret-provider.yaml
+
+$ export S3_SECRET="<YOUR_S3_SECRET_NAME>"
+$ yq e -i '.spec.parameters.objects |= sub("s3-secret",env(S3_SECRET))' ./awsconfigs/common/aws-secrets-manager/s3/secret-provider.yaml
+
+$ export DATABASE_HOST="<YOUR_RDS_HOSTNAME>"
+$ printf 'dbHost='${DATABASE_HOST}'
+mlmdDb=metadata_db' > ./awsconfigs/apps/pipeline/rds/params.env
+
+$ export BUCKET_NAME="<YOUR_BUCKET_NAME>"
+$ printf 'bucketName='${BUCKET_NAME}'
+minioServiceHost=s3.amazonaws.com
+minioServiceRegion='${AWS_REGION}'' > ./awsconfigs/apps/pipeline/s3/params.env
+```
+
+And we can finally build and apply all the changes:
+
+```bash
+$ while ! kustomize build ./docs/deployment/cognito-rds-s3 | kubectl apply -f -; do echo "Retrying to apply resources"; sleep 10; done
+```
+
+Last, but not least:
+
+- We can update the placeholder *DNS* record in a custom domain with the *ALB* address.
+- Create a user in a *Cognito* user pool.
+- Create a profile for the user from the user pool.
+- And finally, connect to the central dashboard.
 
 ## License
 
