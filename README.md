@@ -20,6 +20,7 @@ $ make install
 $ cd infrastructure/01-shared-regional-infrastructure && npm install
 $ cd infrastructure/02-shared-global-infrastructure && npm install
 $ cd infrastructure/03-kubeflow-dependencies && npm install
+$ cd infrastructure/04-working-environment && npm install
 ```
 
 ### Setting-up AWS Infrastructure
@@ -64,7 +65,9 @@ $ npm run deploy
 
 #### Working environment
 
-**This step is optional**. It's used just for demonstration purposes - to prepare a unified environment for the Kubeflow configuration and deployment. If you have [all prerequisites available locally](https://awslabs.github.io/kubeflow-manifests/docs/deployment/prerequisites/), you are free to skip it. See also [.tool-versions](./.tool-versions) file for exact versions used in this project.
+**This step is optional**.
+
+It's used just for demonstration purposes - to prepare a unified environment for the Kubeflow configuration and deployment. If you have [all prerequisites available locally](https://awslabs.github.io/kubeflow-manifests/docs/deployment/prerequisites/), you are free to skip it. See also [.tool-versions](./.tool-versions) file for exact versions used in this project.
 
 ```bash
 $ cd infrastructure/04-working-environment
@@ -78,6 +81,10 @@ $ npm run deploy
 3. Show *Hidden Files* in the sidebar inside *AWS Cloud 9 IDE* (click the *gear icon* on the sidebar).
 
 ### Kubeflow deployment
+
+If you are not using *AWS Cloud 9* from 4th step, please make sure you've cloned [awslabs/kubeflow-manifests](https://github.com/awslabs/kubeflow-manifests) locally as it is requested [here](https://awslabs.github.io/kubeflow-manifests/docs/deployment/prerequisites/#clone-the-repository).
+
+Now, we can proceed with the deployment steps:
 
 ```bash
 ```
