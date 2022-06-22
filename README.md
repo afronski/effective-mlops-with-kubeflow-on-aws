@@ -121,18 +121,20 @@ $ curl https://raw.githubusercontent.com/aws-samples/amazon-cloudwatch-container
 Now, we have to configure all the settings:
 
 ```bash
+$ export REGIONAL_CERT_ARN="<YOUR_REGIONAL_WILDCARD_CERTIFICATE_ARN>"
 $ printf 'clusterName='$CLUSTER_NAME'' > ./awsconfigs/common/aws-alb-ingress-controller/base/params.env
+$ printf 'certArn='$REGIONAL_CERT_ARN'' > ./awsconfigs/common/istio-ingress/overlays/https/params.env
+$ printf 'loadBalancerScheme=internal' > ./awsconfigs/common/istio-ingress/base/params.env
 
 $ export CognitoUserPoolArn="<YOUR_USER_POOL_ARN>"
 $ export CognitoAppClientId="<YOUR_APP_CLIENT_ID>"
 $ export CognitoUserPoolDomain="<YOUR_USER_POOL_DOMAIN>"
-$ export certArn="<YOUR_ACM_CERTIFICATE_ARN>"
 $ export signOutURL="<YOUR_SIGN_OUT_URL>"
 $ export CognitoLogoutURL="https://$CognitoUserPoolDomain/logout?client_id=$CognitoAppClientId&logout_uri=$signOutURL"
 $ printf 'CognitoUserPoolArn='$CognitoUserPoolArn'
 CognitoAppClientId='$CognitoAppClientId'
 CognitoUserPoolDomain='$CognitoUserPoolDomain'
-certArn='$certArn'' > ./awsconfigs/common/istio-ingress/overlays/cognito/params.env
+certArn='$REGIONAL_CERT_ARN'' > ./awsconfigs/common/istio-ingress/overlays/cognito/params.env
 
 $ printf 'LOGOUT_URL='$CognitoLogoutURL'' > ./awsconfigs/common/aws-authservice/base/params.env
 
@@ -160,10 +162,18 @@ $ while ! kustomize build ./docs/deployment/cognito-rds-s3 | kubectl apply -f -;
 
 Last, but not least:
 
-- We can update the placeholder *DNS* record in a custom domain with the *ALB* address.
+- We can update the placeholder *DNS* record in a custom domain with the *ALB* alias, and we can create `*.platform.${ROOT_DOMAIN}` entry with address from the ingress.
   - `kubectl get ingress -n istio-system`
+    - If you don't see any *ALB* being created, and errors in the logs are saying something about *AccessDenied* make sure that *ServiceAccount* for the *ALB Controller* has proper annotation to the *IAM Role* created in the *IRSA* step. Something along those lines:
+      - ```yaml
+        apiVersion: v1
+        kind: ServiceAccount
+        metadata:
+          annotations:
+            eks.amazonaws.com/role-arn: arn:aws:iam::...
+        ```
 - Create a user in a *Cognito* user pool.
-  - Remember the password used for creating a user, it will be used later.
+  - Remember the password used for creating a user, it will be used later when logging in to *Kubeflow UI*.
 - Create a profile for the user from the user pool.
   - ```yaml
     apiVersion: kubeflow.org/v1beta1
@@ -176,9 +186,9 @@ Last, but not least:
       owner:
         kind: User
         # Replace with the email of the user.
-        name: my_user_email@kubeflow.com
+        name: your@email.com
     ```
-- And finally, connect to the central dashboard.
+- And finally, you can log in to the central dashboard on `https://kubeflow.platform.${ROOT_DOMAIN}/`.
 
 #### Resources
 

@@ -183,6 +183,8 @@ export class InfrastructureSharedKubeflowDepsStack extends Stack {
 
     userPool.addClient("KubeflowUserPoolClient", {
       userPoolClientName: "kubeflow",
+      
+      generateSecret: true,
 
       supportedIdentityProviders: [
         UserPoolClientIdentityProvider.COGNITO
