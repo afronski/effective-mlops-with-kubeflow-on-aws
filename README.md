@@ -124,7 +124,7 @@ Now, we have to configure all the settings:
 $ export REGIONAL_CERT_ARN="<YOUR_REGIONAL_WILDCARD_CERTIFICATE_ARN>"
 $ printf 'clusterName='$CLUSTER_NAME'' > ./awsconfigs/common/aws-alb-ingress-controller/base/params.env
 $ printf 'certArn='$REGIONAL_CERT_ARN'' > ./awsconfigs/common/istio-ingress/overlays/https/params.env
-$ printf 'loadBalancerScheme=internal' > ./awsconfigs/common/istio-ingress/base/params.env
+$ printf 'loadBalancerScheme=internet-facing' > ./awsconfigs/common/istio-ingress/base/params.env
 
 $ export CognitoUserPoolArn="<YOUR_USER_POOL_ARN>"
 $ export CognitoAppClientId="<YOUR_APP_CLIENT_ID>"
