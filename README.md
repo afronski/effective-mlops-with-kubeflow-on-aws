@@ -76,7 +76,7 @@ $ kubectl create namespace amazon-cloudwatch
 Then, we need to create *IRSA* for *AWS SSM* and *AWS Secrets Manager*, and then install *Kubernetes Secrets Store CSI Driver*:
 
 ```bash
-$ eksctl create iamserviceaccount --name kubeflow-secrets-manager-sa --namespace kubeflow --cluster ${CLUSTER_NAME} --attach-policy-arn  arn:aws:iam::aws:policy/AmazonSSMReadOnlyAccess --attach-policy-arn arn:aws:iam::aws:policy/SecretsManagerReadWrite --override-existing-serviceaccounts --approve --region ${AWS_REGION}
+$ eksctl create iamserviceaccount --name kubeflow-secrets-manager-sa --namespace kubeflow --cluster ${CLUSTER_NAME} --attach-policy-arn arn:aws:iam::aws:policy/AmazonSSMReadOnlyAccess --attach-policy-arn arn:aws:iam::aws:policy/SecretsManagerReadWrite --override-existing-serviceaccounts --approve --region ${AWS_REGION}
 
 $ kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/secrets-store-csi-driver/v1.0.0/deploy/rbac-secretproviderclass.yaml
 $ kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/secrets-store-csi-driver/v1.0.0/deploy/csidriver.yaml
