@@ -9,7 +9,6 @@ import { BlockPublicAccess, Bucket } from "aws-cdk-lib/aws-s3";
 import { StringParameter } from "aws-cdk-lib/aws-ssm";
 
 import { CROSS_REGION_PARAMETERS } from "./parameters/cross-region-parameters";
-import { UserPoolDomainTarget } from "aws-cdk-lib/aws-route53-targets";
 
 interface InfrastructureSharedProps extends StackProps {
   rootDomain: string;
