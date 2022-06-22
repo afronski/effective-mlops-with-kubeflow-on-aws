@@ -131,27 +131,33 @@ $ export CognitoAppClientId="<YOUR_APP_CLIENT_ID>"
 $ export CognitoUserPoolDomain="<YOUR_USER_POOL_DOMAIN>"
 $ export signOutURL="<YOUR_SIGN_OUT_URL>"
 $ export CognitoLogoutURL="https://$CognitoUserPoolDomain/logout?client_id=$CognitoAppClientId&logout_uri=$signOutURL"
-$ printf 'CognitoUserPoolArn='$CognitoUserPoolArn'
+$ printf '
+CognitoUserPoolArn='$CognitoUserPoolArn'
 CognitoAppClientId='$CognitoAppClientId'
 CognitoUserPoolDomain='$CognitoUserPoolDomain'
-certArn='$REGIONAL_CERT_ARN'' > ./awsconfigs/common/istio-ingress/overlays/cognito/params.env
+certArn='$REGIONAL_CERT_ARN'
+' > ./awsconfigs/common/istio-ingress/overlays/cognito/params.env
 
 $ printf 'LOGOUT_URL='$CognitoLogoutURL'' > ./awsconfigs/common/aws-authservice/base/params.env
 
-$ export RDS_SECRET="<YOUR_RDS_SECRET_NAME>"
+$ export RDS_SECRET="<YOUR_RDS_SECRET_ARN>"
 $ yq e -i '.spec.parameters.objects |= sub("rds-secret",env(RDS_SECRET))' ./awsconfigs/common/aws-secrets-manager/rds/secret-provider.yaml
 
-$ export S3_SECRET="<YOUR_S3_SECRET_NAME>"
+$ export S3_SECRET="<YOUR_S3_SECRET_ARN>"
 $ yq e -i '.spec.parameters.objects |= sub("s3-secret",env(S3_SECRET))' ./awsconfigs/common/aws-secrets-manager/s3/secret-provider.yaml
 
 $ export DATABASE_HOST="<YOUR_RDS_HOSTNAME>"
-$ printf 'dbHost='${DATABASE_HOST}'
-mlmdDb=metadata_db' > ./awsconfigs/apps/pipeline/rds/params.env
+$ printf '
+dbHost='${DATABASE_HOST}'
+mlmdDb=metadata_db
+' > ./awsconfigs/apps/pipeline/rds/params.env
 
 $ export BUCKET_NAME="<YOUR_BUCKET_NAME>"
-$ printf 'bucketName='${BUCKET_NAME}'
+$ printf '
+bucketName='${BUCKET_NAME}'
 minioServiceHost=s3.amazonaws.com
-minioServiceRegion='${AWS_REGION}'' > ./awsconfigs/apps/pipeline/s3/params.env
+minioServiceRegion='${AWS_REGION}'
+' > ./awsconfigs/apps/pipeline/s3/params.env
 ```
 
 And we can finally build and apply all the changes:
