@@ -40,7 +40,7 @@ Now we can push the code to the *AWS CodeCommit* repository that will be used in
 ```bash
 # Push the code to the newly created repository in AWS CodeCommit via regional infrastructure:
 $ git remote add aws "...<PUT HERE AWS CODECOMMIT URL FROM CDK DEPLOY OUTPUT>..."
-$ git push aws master
+$ git push aws main
 ```
 
 Then we can deploy the rest of the stuff:
